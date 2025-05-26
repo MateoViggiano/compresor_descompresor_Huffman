@@ -1,15 +1,20 @@
 #include<atomic>
 #include<iostream>
-#include"F:/C++/viggianolib/viggiano.hpp"
+#ifdef __linux__
+#include"/media/Estudiante/Pendrive/C++/viggianolib/viggiano"
+#else
+#include"F:/C++/viggianolib/viggiano"
+#endif
 #include<memory_resource>
 #include<fstream>
-#include"windows.h"
+
 #include<thread>
 #include<filesystem>
 
 using namespace std;
 using namespace mpv;
 namespace fs = filesystem;
+using fs_char_t=mpv::remove_cv_t<mpv::remove_pointer_t<decltype(mpv::declval<fs::path>().c_str())>>;
 struct Simbolo COUNT_IT{
 	char simbolo;
 	Str<char> binario;
@@ -65,7 +70,7 @@ Vector<Simbolo> contar_simbolos(const char* mensaje, int msg_sz) {
 	return lista;
 }
 Pair<int, int> menores_posiciones(const Vector<sPtr<Nodo>>& lista) {
-	int sz = lista.len(), i;
+	int sz = lista.size(), i;
 	Pair<int, int> posiciones(sz - 1, sz - 1);
 	for (i = sz - 1; i >= 0; i--) {
 		if (lista[i]->apariciones < lista[posiciones.d1]->apariciones)
@@ -80,7 +85,7 @@ Pair<int, int> menores_posiciones(const Vector<sPtr<Nodo>>& lista) {
 	return posiciones;
 }
 sPtr<Nodo> crear_arbol(Vector<sPtr<Nodo>>& lista) {
-	while (lista.len() > 1) {
+	while (lista.size() > 1) {
 		Pair<int, int> menores = menores_posiciones(lista);
 		sPtr<Nodo> nuevo(make_sPtr<Nodo>());
 		nuevo->apariciones = lista[menores.d1]->apariciones + lista[menores.d2]->apariciones;
@@ -100,10 +105,10 @@ sPtr<Nodo> crear_arbol(Vector<sPtr<Nodo>>& lista) {
 	return lista[0];
 }
 void asignar_valores_binarios(sPtr<Nodo> raiz, Vector<Simbolo>& caracteres) {
-	int sz = caracteres.len();
+	int sz = caracteres.size();
 	for (int i = 0; i < sz; i++) {
 		sPtr<Nodo> puntero(raiz);
-		while (puntero->simbolos.len() > 1) {
+		while (puntero->simbolos.size() > 1) {
 			if (puntero->izquierda->simbolos.has(caracteres[i].simbolo)) {
 				if (puntero->izquierda->apariciones >= puntero->derecha->apariciones)
 					caracteres[i].binario += "0";
@@ -146,10 +151,10 @@ char bin_to_dec(const Str<>& bits) {
 	return num;
 }
 Vector<char> compress(Str<>& binario) {
-	while (binario.len() % 8 != 0)
+	while (binario.size() % 8 != 0)
 		binario += '0';
 	Vector<char> compressed;
-	for (size_t i = 0; i < binario.len(); i += 8) {
+	for (size_t i = 0; i < binario.size(); i += 8) {
 		compressed.append(bin_to_dec(binario.substr(i, i + 8)));
 	}
 	return compressed;
@@ -157,7 +162,7 @@ Vector<char> compress(Str<>& binario) {
 void writeSymbols(const Vector<Simbolo>& simbolos, ofstream& file) {
 	for (auto s : simbolos) {
 		file.put(s.simbolo);
-		file.put((unsigned char)s.binario.len());
+		file.put((unsigned char)s.binario.size());
 		Vector<char,pmr::polymorphic_allocator<char>> bytes = compress(s.binario);
 		for (auto b : bytes)
 			file.put(b);
@@ -180,7 +185,7 @@ void encode(fs::path src, fs::path dest) {
 	}
 	inputFile.close();
 	Vector<Simbolo> simbolos = contar_simbolos(mensaje, size);
-	int cant_simbolos = simbolos.len();
+	int cant_simbolos = simbolos.size();
 	if (cant_simbolos == 0 or cant_simbolos == 1) {
 		cout << "El archivo no se puede comprimir" << endl;
 		return;
@@ -212,7 +217,7 @@ void encode(fs::path src, fs::path dest) {
 		return;
 	}
 	Vector<char> compressed = compress(mensaje_codificado);
-	file.write(compressed.get_array(), compressed.len());
+	file.write(compressed.get_array(), compressed.size());
 	file.close();
 
 }
@@ -224,8 +229,8 @@ void tab(short n) {
 List<thread> threads;
 fs::path folder, created_folder;
 void traverse(fs::path fname, short tabs = 0) {
-	Str<wchar_t> dest_name = fname.c_str();
-	dest_name.replace(Str<wchar_t>(folder.c_str()), Str<wchar_t>(created_folder.c_str()), 1);
+	Str<fs_char_t> dest_name = fname.c_str();
+	dest_name.replace(Str<fs_char_t>(folder.c_str()), Str<fs_char_t>(created_folder.c_str()), 1);
 	tab(tabs);
 	if (not fs::is_directory(fs::absolute(fname))) {
 		cout << fname.filename() << endl;

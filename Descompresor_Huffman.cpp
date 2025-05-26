@@ -1,16 +1,17 @@
 #include<atomic>
 #include<iostream>
+#ifdef __linux__
+#include"/media/Estudiante/Pendrive/C++/viggianolib/viggiano"
+#else
 #include"F:/C++/viggianolib/viggiano"
-#include<windows.h>
+#endif
 #include<fstream>
 #include<thread>
 #include<filesystem>
-#include<memory_resource>
 using namespace std;
 using namespace mpv;
 namespace fs = filesystem;
 
-pmr::synchronized_pool_resource rsrc;
 struct Symbol COUNT_IT{
 	char symbol;
 	Str<> bin;
@@ -27,7 +28,7 @@ Str<> dec_to_bin(unsigned char num) {
 		binary.insert(0, toChar(num % 2));
 		num /= 2;
 	}
-	while (binary.len() < 8)
+	while (binary.size() < 8)
 		binary.insert(0, '0');
 	return binary;
 }
@@ -36,7 +37,7 @@ bool is_int(float n) {
 	if (n == 0) return true;
 	else return false;
 }
-void readSymbols(Vector<Symbol,pmr::polymorphic_allocator<Symbol>>& simbolos, fstream& file, int fsize) {
+void readSymbols(Vector<Symbol>& simbolos, fstream& file, int fsize) {
 	for (int i = 4; i < fsize;) {
 		char b;
 		file.get(b); i++;
@@ -46,7 +47,7 @@ void readSymbols(Vector<Symbol,pmr::polymorphic_allocator<Symbol>>& simbolos, fs
 		float n = (float)bin_sz / 8.f;
 		if (not is_int(n))
 			n = int(n + 1);
-		Vector<char,pmr::polymorphic_allocator<char>> bin(&rsrc);
+		Vector<char> bin;
 		for (int j = 0; j < n; j++) {
 			file.get(b); i++;
 			bin.append(b);
@@ -54,7 +55,7 @@ void readSymbols(Vector<Symbol,pmr::polymorphic_allocator<Symbol>>& simbolos, fs
 		Str<> bits = "";
 		for (auto bit : bin)
 			bits += dec_to_bin(bit);
-		while ((unsigned char)bits.len() > bin_sz)
+		while ((unsigned char)bits.size() > bin_sz)
 			bits.del_back();
 		simbolos.back().bin = bits;
 	}
@@ -88,7 +89,7 @@ void decode(fs::path fpath) {
 	file.seekg(0);
 	unsigned int msj_len;
 	file.read((char*)&msj_len, sizeof(unsigned int));
-	Vector<Symbol,pmr::polymorphic_allocator<Symbol>> list(&rsrc);
+	Vector<Symbol> list;
 	readSymbols(list, file, fsize);
 	file.close();
 	file.open(fpath.replace_extension(""), ios::out | ios::binary);
@@ -99,10 +100,10 @@ void decode(fs::path fpath) {
 	unsigned int cont = 0;
 	for (unsigned long long j = 0; true;) {
 		bool error = true;
-		for (size_t i = 0; i < list.len(); i++) {
+		for (size_t i = 0; i < list.size(); i++) {
 			if (bin.continueswith(list[i].bin, j)) {
 				file.put(list[i].symbol);
-				j += list[i].bin.len();
+				j += list[i].bin.size();
 				error = false;
 				cont++;
 				break;
@@ -111,7 +112,7 @@ void decode(fs::path fpath) {
 		// for(auto i:list){
 		// 	if(bin.continueswith(i.bin,j)){
 		// 		file.put(i.symbol);
-		// 		j+=i.bin.len();
+		// 		j+=i.bin.size();
 		// 		error=false;
 		// 		cont++;
 		// 		break;
@@ -133,7 +134,7 @@ void decode(fs::path fpath) {
 }
 List<thread> threads;
 void traverse(fs::path fname, short tabs = 0) {
-	Str<> tabstr = Str<>("\t") * tabs;
+	String tabstr = String("\t") * tabs;
 	if (not fs::is_directory(fname)) {
 		if (fname.extension() == ".compressed") {
 			cout << tabstr << fname.filename() << endl;
@@ -149,7 +150,7 @@ void traverse(fs::path fname, short tabs = 0) {
 int main(int argc, char** argv) {
 	{
 		if (argc == 1) {
-			Str<> filename;
+			String filename;
 			cin >> filename;
 			if (fs::exists(filename.c_str()))
 				traverse(fs::absolute(filename.c_str()));
