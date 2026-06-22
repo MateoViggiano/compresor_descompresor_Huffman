@@ -3,7 +3,7 @@
 #ifdef __linux__
 #include"/media/Estudiante/Pendrive/C++/viggianolib/viggiano"
 #else
-#include"F:/C++/viggianolib/viggiano"
+#include"C:/Users/Mateo Viggiano/Documents/C++/viggianolib/viggiano.hpp"
 #endif
 #include<fstream>
 #include<thread>
@@ -41,16 +41,16 @@ void readSymbols(Vector<Symbol>& simbolos, fstream& file, int fsize) {
 	for (int i = 4; i < fsize;) {
 		char b;
 		file.get(b); i++;
-		simbolos.append(b);
+		simbolos.push_back(b);
 		file.get(b); i++;
 		unsigned char bin_sz = b;
 		float n = (float)bin_sz / 8.f;
-		if (not is_int(n))
+		if (!is_int(n))
 			n = int(n + 1);
 		Vector<char> bin;
 		for (int j = 0; j < n; j++) {
 			file.get(b); i++;
-			bin.append(b);
+			bin.push_back(b);
 		}
 		Str<> bits = "";
 		for (auto bit : bin)
@@ -135,10 +135,10 @@ void decode(fs::path fpath) {
 List<thread> threads;
 void traverse(fs::path fname, short tabs = 0) {
 	String tabstr = String("\t") * tabs;
-	if (not fs::is_directory(fname)) {
+	if (!fs::is_directory(fname)) {
 		if (fname.extension() == ".compressed") {
 			cout << tabstr << fname.filename() << endl;
-			threads.append(thread(decode, fname));
+			threads.push_back(thread(decode, fname));
 		}
 	}
 	else {
